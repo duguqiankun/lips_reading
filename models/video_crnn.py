@@ -73,7 +73,8 @@ class videoModel(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    # input video, batch_size, channel, height, width, frames (pad all video to same frames)
+    # input video,
+    # batch_size, channel, height, width, frames (pad all video to same frames)
     batch_size = 5
     channel = 3
     fixed_height, fixed_width = 60, 60
@@ -85,5 +86,5 @@ if __name__ == '__main__':
     y = model(x)
     print(y.size())  # [5, 6, 28]
     # 5 is the batch size, 6 is the max_char_len, 28 is the char_number,
-    # we can use greedy search to find the character with max score for each
+    # we can use greedy search to find the character with max score for each position
 
