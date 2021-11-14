@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 
 class BidirectionalLSTM(torch.nn.Module):
@@ -7,21 +8,33 @@ class BidirectionalLSTM(torch.nn.Module):
         super(BidirectionalLSTM, self).__init__()
 
         self.rnn = torch.nn.LSTM(nIn, nHidden, bidirectional=True, batch_first=True)
-        self.embedding = torch.nn.Linear(nHidden * 2, nOut)
+        self.embedding_1 = torch.nn.Linear(nHidden * 2, nHidden)
+        self.embedding_2 = torch.nn.Linear(nHidden, nHidden//2)
+        self.embedding_3 = torch.nn.Linear(nHidden//2, nOut)
+        self.dropout_1 = torch.nn.Dropout(p=0.25)
+        # self.dropout_2 = torch.nn.Dropout(p=0.25)
 
     def forward(self, inputs):
         recurrent, _ = self.rnn(inputs)
         T, b, h = recurrent.size()
         t_rec = recurrent.reshape(T * b, h)
 
-        output = self.embedding(t_rec)  # [T * b, nOut]
-        output = output.reshape(T, b, -1)
+        output = self.embedding_1(t_rec)  # [T * b, nOut]
+        output = self.dropout_1(output)
+        output = F.relu(output)
 
+        output = self.embedding_2(output)
+        # output = self.dropout_2(output)
+        output = F.relu(output)
+
+        output = self.embedding_3(output)
+        output = output.reshape(T, b, -1)
+        output = F.softmax(output, dim=-1)
         return output
 
 
 class VideoModel(torch.nn.Module):
-    def __init__(self, number_classes=28, max_len=6):
+    def __init__(self, number_classes=28, max_len=6, image_shape=(100, 100)):
         """
 
         :param number_classes:
@@ -46,7 +59,9 @@ class VideoModel(torch.nn.Module):
         self.conv_block_2 = self._conv_block(32, 64)
         self.conv_block_3 = self._conv_block(64, 128)
         self.conv_block_4 = self._conv_block(128, 256)
-        self.lstm_decoder = BidirectionalLSTM(nIn=5376,
+        assert image_shape[0] in [100, 60]
+        nIn = 21504 if image_shape[0] == 100 else 5376
+        self.lstm_decoder = BidirectionalLSTM(nIn=nIn,
                                               nHidden=256,
                                               nOut=number_classes)
 
@@ -80,12 +95,13 @@ if __name__ == '__main__':
     # batch_size, channel, height, width, frames (pad all video to same frames)
     batch_size = 1
     channel = 3
-    fixed_height, fixed_width = 60, 60
+    fixed_height, fixed_width = 100, 100
     fixed_max_frame = 200
     # batch size, fixed_max_frame, channel, fixed_height, fixed_width
     x = torch.rand(batch_size, fixed_max_frame, channel, fixed_height, fixed_width)
 
     model = VideoModel()
+    print(model)
 
     y = model(x)
     print(y.size())  # [5, 6, 28]

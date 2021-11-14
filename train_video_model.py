@@ -34,6 +34,8 @@ def get_train_test_folders():
     return train_folders, test_folders
 
 
+image_shape = (60, 60)
+
 char_dict = make_char_dict()
 train_folders, test_folders = get_train_test_folders()
 train_dataset = VideoDataset(
@@ -41,6 +43,7 @@ train_dataset = VideoDataset(
     char_dict=char_dict,
     fixed_frame_num=200,
     fixed_max_len=6,
+    image_shape=image_shape,
 )
 batch_size = 10
 train_dataloader = DataLoader(
@@ -51,12 +54,15 @@ test_dataset = VideoDataset(
     char_dict=char_dict,
     fixed_frame_num=200,
     fixed_max_len=6,
-    aug=None   # No need to do data augmentation in testing dataset
+    aug=None,  # No need to do data augmentation in testing dataset
+    image_shape=image_shape,
 )
 test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, shuffle=True
 )
-model = VideoModel(number_classes=len(list(char_dict.keys())), max_len=6)
+model = VideoModel(number_classes=len(list(char_dict.keys())),
+                   max_len=6,
+                   image_shape=image_shape)
 model = model.to(device)
 print(model)
 criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -68,13 +74,14 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                        mode='min',
                                                        verbose=True,
                                                        factor=0.5,
-                                                       patience=3,
-                                                       threshold=0.0000001)
+                                                       patience=5,
+                                                       threshold=0.00001)
 
 
 def train_process():
     running_loss = 0
     num_batches = 0
+
     model.train()
     for idx, data in enumerate(train_dataloader):
         optimizer.zero_grad()
@@ -93,12 +100,12 @@ def train_process():
         loss = criterion(scores, y)
 
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
         optimizer.step()
         running_loss += loss.detach().item()
         num_batches += 1
         print("time:{}, epoch: {} step: {}, avg running loss is {}".format(
-            time.ctime(), epoch+1, idx+1, running_loss / num_batches
+            time.ctime(), epoch + 1, idx + 1, running_loss / num_batches
         ))
     return running_loss, num_batches
 
@@ -106,6 +113,7 @@ def train_process():
 def testing_process():
     running_loss = 0
     num_batches = 0
+
     model.eval()
     with torch.no_grad():
         for idx, data in enumerate(test_dataloader):
@@ -126,10 +134,8 @@ def testing_process():
 for epoch in range(epochs):
     running_loss, num_batches = train_process()
     test_running_loss, test_num_batches = testing_process()
-    print("*"*100)
-    print("epoch: {}, avg training loss:{}, avg validation loss:{}".format(epoch+1, running_loss / num_batches,
+    print("*" * 100)
+    print("epoch: {}, avg training loss:{}, avg validation loss:{}".format(epoch + 1, running_loss / num_batches,
                                                                            test_running_loss / test_num_batches))
-    scheduler.step(test_running_loss/test_num_batches)
-    print("*"*100)
-
-
+    scheduler.step(test_running_loss / test_num_batches)
+    print("*" * 100)

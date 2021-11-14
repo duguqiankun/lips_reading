@@ -7,7 +7,6 @@ import albumentations as A
 import torchvision.transforms as transforms
 
 
-fix_shape = (60, 60)
 augmentation = A.Compose([
     A.OneOf([
         A.IAAAdditiveGaussianNoise(p=0.9),
@@ -33,15 +32,19 @@ augmentation = A.Compose([
     )
 ])
 
-transform = transforms.Compose([
-    transforms.Resize((fix_shape[0], fix_shape[1])),
-    transforms.ToTensor()
-])
+
+def build_transform(shape):
+    transform = transforms.Compose([
+        transforms.Resize((shape[0], shape[1])),
+        transforms.ToTensor()
+    ])
+    return transform
 
 
 class VideoDataset(Dataset):
     def __init__(self, folder_list, char_dict,
                  fixed_frame_num=200, fixed_max_len=6,
+                 image_shape=(100, 100),
                  aug=augmentation):
         self.folders = folder_list
         np.random.shuffle(self.folders)
@@ -49,6 +52,8 @@ class VideoDataset(Dataset):
         self.char_dict = char_dict
         self.fixed_max_len = fixed_max_len
         self.augmentation = aug
+        self.image_shape = image_shape
+        self.transform = build_transform(shape=self.image_shape)
 
     def __len__(self):
         return len(self.folders)
@@ -79,9 +84,9 @@ class VideoDataset(Dataset):
                     img = self.augmentation(image=np.array(img, dtype=np.uint8))["image"]
                     img = Image.fromarray(img)
             else:
-                img = Image.new("RGB", (fix_shape[1], fix_shape[0]))
+                img = Image.new("RGB", (self.image_shape[1], self.image_shape[0]))
 
-            img = transform(img)
+            img = self.transform(img)
             images.append(img)
         x = torch.stack(images)
         y = torch.tensor(label_digit, dtype=torch.long)
