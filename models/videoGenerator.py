@@ -69,7 +69,7 @@ class VideoDataset(Dataset):
             label_digit += [self.char_dict["<blank>"]] * rest
 
         image_list = [os.path.join(image_folder, i) for i in os.listdir(image_folder) if i.endswith(".jpg")]
-        image_list = sorted(image_list, reverse=False)
+        image_list = sorted(image_list)
         images = []
 
         if len(image_list) >= self.fixed_frame_num:

@@ -8,10 +8,11 @@ class BidirectionalLSTM(torch.nn.Module):
         super(BidirectionalLSTM, self).__init__()
 
         self.rnn = torch.nn.LSTM(nIn, nHidden, bidirectional=True, batch_first=True)
-        self.embedding_1 = torch.nn.Linear(nHidden * 2, nHidden)
-        self.embedding_2 = torch.nn.Linear(nHidden, nHidden//2)
-        self.embedding_3 = torch.nn.Linear(nHidden//2, nOut)
-        self.dropout_1 = torch.nn.Dropout(p=0.25)
+        self.embedding = torch.nn.Linear(nHidden * 2, nOut)
+        # self.embedding_1 = torch.nn.Linear(nHidden * 2, nHidden)
+        # self.embedding_2 = torch.nn.Linear(nHidden, nHidden//2)
+        # self.embedding_3 = torch.nn.Linear(nHidden//2, nOut)
+        # self.dropout_1 = torch.nn.Dropout(p=0.1)
         # self.dropout_2 = torch.nn.Dropout(p=0.25)
 
     def forward(self, inputs):
@@ -19,17 +20,20 @@ class BidirectionalLSTM(torch.nn.Module):
         T, b, h = recurrent.size()
         t_rec = recurrent.reshape(T * b, h)
 
-        output = self.embedding_1(t_rec)  # [T * b, nOut]
-        output = self.dropout_1(output)
-        output = F.relu(output)
+        # output = self.embedding_1(t_rec)  # [T * b, nOut]
+        # output = self.dropout_1(output)
+        # output = F.relu(output)
+        #
+        # output = self.embedding_2(output)
+        # # output = self.dropout_2(output)
+        # output = F.relu(output)
+        #
+        # output = self.embedding_3(output)
 
-        output = self.embedding_2(output)
-        # output = self.dropout_2(output)
-        output = F.relu(output)
+        output = self.embedding(t_rec)
 
-        output = self.embedding_3(output)
         output = output.reshape(T, b, -1)
-        output = F.softmax(output, dim=-1)
+        # output = F.softmax(output, dim=-1)
         return output
 
 

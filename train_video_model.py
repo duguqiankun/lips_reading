@@ -66,14 +66,14 @@ model = VideoModel(number_classes=len(list(char_dict.keys())),
 model = model.to(device)
 print(model)
 criterion = torch.nn.CrossEntropyLoss().to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=1, momentum=0.9)
 
 steps_per_epoch = len(train_folders) // 10 + 1
 epochs = 300
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                        mode='min',
                                                        verbose=True,
-                                                       factor=0.5,
+                                                       factor=0.1,
                                                        patience=5,
                                                        threshold=0.00001)
 
@@ -100,7 +100,7 @@ def train_process():
         loss = criterion(scores, y)
 
         loss.backward()
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
         optimizer.step()
         running_loss += loss.detach().item()
         num_batches += 1
