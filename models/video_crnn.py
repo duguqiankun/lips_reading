@@ -20,7 +20,7 @@ class BidirectionalLSTM(torch.nn.Module):
         return output
 
 
-class videoModel(torch.nn.Module):
+class VideoModel(torch.nn.Module):
     def __init__(self, number_classes=28, max_len=6):
         """
 
@@ -39,7 +39,7 @@ class videoModel(torch.nn.Module):
         abc -> abc<eos><blank><blank>
         number_classes = 28, 26 characters + <eos> + <blank>
         """
-        super(videoModel, self).__init__()
+        super(VideoModel, self).__init__()
         self.number_classes = number_classes
         self.max_len = max_len
         self.conv_block_1 = self._conv_block(3, 32)
@@ -54,13 +54,16 @@ class videoModel(torch.nn.Module):
         conv_block = torch.nn.Sequential(
             torch.nn.Conv3d(input_c, output_c, kernel_size=(3, 3, 2), padding=1),
             torch.nn.LeakyReLU(),
+            # torch.nn.BatchNorm3d(output_c),
             torch.nn.Conv3d(output_c, output_c, kernel_size=(3, 3, 2), padding=1),
             torch.nn.LeakyReLU(),
+            # torch.nn.BatchNorm3d(output_c),
             torch.nn.MaxPool3d((2, 2, 2))
         )
         return conv_block
 
     def forward(self, x):
+        x = x.permute(dims=(0, 2, 3, 4, 1))
         x = self.conv_block_1(x)
         x = self.conv_block_2(x)
         x = self.conv_block_3(x)
@@ -75,13 +78,14 @@ class videoModel(torch.nn.Module):
 if __name__ == '__main__':
     # input video,
     # batch_size, channel, height, width, frames (pad all video to same frames)
-    batch_size = 5
+    batch_size = 1
     channel = 3
     fixed_height, fixed_width = 60, 60
     fixed_max_frame = 200
-    x = torch.rand(batch_size, channel, fixed_height, fixed_width, fixed_max_frame)
+    # batch size, fixed_max_frame, channel, fixed_height, fixed_width
+    x = torch.rand(batch_size, fixed_max_frame, channel, fixed_height, fixed_width)
 
-    model = videoModel()
+    model = VideoModel()
 
     y = model(x)
     print(y.size())  # [5, 6, 28]
