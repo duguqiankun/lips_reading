@@ -44,6 +44,7 @@ class VideoDataset(Dataset):
                  fixed_frame_num=200, fixed_max_len=6,
                  aug=augmentation):
         self.folders = folder_list
+        np.random.shuffle(self.folders)
         self.fixed_frame_num = fixed_frame_num
         self.char_dict = char_dict
         self.fixed_max_len = fixed_max_len
