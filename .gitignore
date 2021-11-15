@@ -131,3 +131,4 @@ dmypy.json
 *.mp4
 *.MOV
 data/*
+mlp/weights/best.pt

@@ -131,6 +131,8 @@ def testing_process():
     return running_loss, num_batches
 
 
+eval_loss = 3
+
 for epoch in range(epochs):
     running_loss, num_batches = train_process()
     test_running_loss, test_num_batches = testing_process()
@@ -139,3 +141,7 @@ for epoch in range(epochs):
                                                                            test_running_loss / test_num_batches))
     scheduler.step(test_running_loss / test_num_batches)
     print("*" * 100)
+
+    if test_running_loss / test_num_batches < eval_loss:
+        torch.save(model.state_dict(),'mlp/weights/best.pt')
+        eval_loss =  test_running_loss / test_num_batches
