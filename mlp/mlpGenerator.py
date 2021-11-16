@@ -93,6 +93,7 @@ class VideoDataset(Dataset):
                 images.append(img)
 
         x = torch.stack(images).flatten()
+        #x = torch.stack(images)
 
 
         y = torch.tensor(label_digit, dtype=torch.long)
@@ -139,4 +140,4 @@ if __name__ == '__main__':
 
     for batch_idx, (imgs, label) in enumerate(train_dataloader):
         print(imgs.shape)
-        print(label)
+        print(label.shape)

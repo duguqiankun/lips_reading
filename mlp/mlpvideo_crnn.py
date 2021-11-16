@@ -89,6 +89,9 @@ class VideoModel(torch.nn.Module):
         shape = x.size()
         # bs, 256, 3, 3, 14
         x = x.view(shape[0], self.max_len, -1)  # bs, max_len, rest
+
+        print(x.shape)
+
         x = self.lstm_decoder(x)
         return x
 
