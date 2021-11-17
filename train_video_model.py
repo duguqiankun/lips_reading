@@ -66,16 +66,26 @@ model = VideoModel(number_classes=len(list(char_dict.keys())),
 model = model.to(device)
 print(model)
 criterion = torch.nn.CrossEntropyLoss().to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=1, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
 steps_per_epoch = len(train_folders) // 10 + 1
-epochs = 300
+# in real traning process, we set 300 epochs with early stopping,
+# here we just use 10 epochs to show the entire pipeline for your reference
+epochs = 10
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                        mode='min',
                                                        verbose=True,
                                                        factor=0.1,
                                                        patience=5,
                                                        threshold=0.00001)
+
+
+def compute_val_acc(scores, y):
+    num = scores.size(0)
+    prediction = scores.argmax(dim=1)
+    indicator = (prediction == y)
+    num_matches = indicator.sum()
+    return num_matches.float() / num
 
 
 def train_process():
@@ -113,7 +123,7 @@ def train_process():
 def testing_process():
     running_loss = 0
     num_batches = 0
-
+    running_acc = 0
     model.eval()
     with torch.no_grad():
         for idx, data in enumerate(test_dataloader):
@@ -128,14 +138,68 @@ def testing_process():
             loss = criterion(scores, y)
             running_loss += loss.item()
             num_batches += 1
-    return running_loss, num_batches
+            running_acc += compute_val_acc(scores, y)
+    return running_loss, num_batches, running_acc
 
 
+lowest_loss = 100000000
+lowest_loss_epoch = 0
+c = 0
+patiences = 10
 for epoch in range(epochs):
     running_loss, num_batches = train_process()
-    test_running_loss, test_num_batches = testing_process()
+    test_running_loss, test_num_batches, running_acc = testing_process()
     print("*" * 100)
-    print("epoch: {}, avg training loss:{}, avg validation loss:{}".format(epoch + 1, running_loss / num_batches,
-                                                                           test_running_loss / test_num_batches))
+    print("epoch: {}, avg training loss:{}, avg validation loss:{}, validation acc: {}".format(epoch + 1,
+                                                                                               running_loss / num_batches,
+                                                                                               test_running_loss / test_num_batches,
+                                                                                               running_acc / test_num_batches))
     scheduler.step(test_running_loss / test_num_batches)
     print("*" * 100)
+    # early stopping
+    if test_running_loss / test_num_batches < lowest_loss:
+        c = 0
+        lowest_loss = test_running_loss / test_num_batches
+        lowest_loss_epoch = epoch
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': lowest_loss,
+        }, "best_3D_model.pt")
+        print("save best model in best_3D_model.pt")
+    else:
+        c += 1
+    if c == patiences:
+        print("no improvement for {} epochs, model is stopped".format(patiences))
+        break
+
+# inference
+model = VideoModel(number_classes=len(list(char_dict.keys())),
+                   max_len=6,
+                   image_shape=image_shape)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
+checkpoint = torch.load("best_3D_model.pt")
+model.load_state_dict(checkpoint['model_state_dict'])
+optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+epoch = checkpoint['epoch']
+loss = checkpoint['loss']
+
+model.eval()
+acc = 0
+count = 0
+with torch.no_grad():
+    for idx, data in enumerate(test_dataloader):
+        x, y = data
+        size = y.size()
+        x = x.to(device)
+        y = y.to(device)
+        scores = model(x)
+
+        scores = scores.view(size[0] * size[1], -1)
+        y = y.view(size[0] * size[1])
+        acc += compute_val_acc(scores, y)
+        count += 1
+
+print("Acc in inference process is {}".format(acc / count))

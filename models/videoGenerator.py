@@ -6,7 +6,7 @@ from PIL import Image
 import albumentations as A
 import torchvision.transforms as transforms
 
-
+# data augmentation for training
 augmentation = A.Compose([
     A.OneOf([
         A.IAAAdditiveGaussianNoise(p=0.9),
@@ -46,6 +46,15 @@ class VideoDataset(Dataset):
                  fixed_frame_num=200, fixed_max_len=6,
                  image_shape=(100, 100),
                  aug=augmentation):
+        """
+
+        :param folder_list: video image folders for training or validation
+        :param char_dict:
+        :param fixed_frame_num:
+        :param fixed_max_len:
+        :param image_shape:
+        :param aug: whether to use data augmentation or not, None or augmentation object
+        """
         self.folders = folder_list
         np.random.shuffle(self.folders)
         self.fixed_frame_num = fixed_frame_num
@@ -61,6 +70,7 @@ class VideoDataset(Dataset):
     def __getitem__(self, index):
         image_folder = self.folders[index]
         label = image_folder.split("/")[-1].split("_")[-1].strip(" ")
+        # encode the char text to class index for training
         label_digit = [self.char_dict[i] for i in label]
         assert len(label_digit) < self.fixed_max_len
         label_digit.append(self.char_dict["<eos>"])
@@ -73,8 +83,11 @@ class VideoDataset(Dataset):
         images = []
 
         if len(image_list) >= self.fixed_frame_num:
+            # due to GPU limitation, we can not generate too huge videos,
+            # so we have to set a fixed max frame number
             image_list = image_list[:self.fixed_frame_num]
         else:
+            # if the image number is lower than fixed frame number, we pad it with default RGB images
             image_list += ["pad"] * (self.fixed_frame_num - len(image_list))
 
         for i in image_list:
