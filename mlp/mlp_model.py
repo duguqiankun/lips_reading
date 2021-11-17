@@ -33,7 +33,7 @@ class BidirectionalLSTM(torch.nn.Module):
         output = self.embedding(t_rec)
 
         output = output.reshape(T, b, -1)
-        # output = F.softmax(output, dim=-1)
+        output = F.softmax(output, dim=-1)
         return output
 
 

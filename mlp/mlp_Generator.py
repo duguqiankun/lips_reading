@@ -93,9 +93,6 @@ class VideoDataset(Dataset):
                 images.append(img)
 
         x = torch.stack(images).flatten()
-        #x = torch.stack(images)
-
-
         y = torch.tensor(label_digit, dtype=torch.long)
         return x, y
 

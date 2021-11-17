@@ -132,3 +132,7 @@ dmypy.json
 *.MOV
 data/*
 mlp/weights/best.pt
+mlp/log/events.out.tfevents.1637156158.allen-workstation.1254566.5.v2
+mlp/log/events.out.tfevents.1637156210.allen-workstation.1254868.5.v2
+mlp/log/events.out.tfevents.1637156253.allen-workstation.1255094.5.v2
+best_mlp_model.pt

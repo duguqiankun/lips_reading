@@ -2,16 +2,18 @@ import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-from mlpGenerator import VideoDataset
-from mlpvideo_crnn import VideoModel
+from mlp_Generator import VideoDataset
+from mlp_model import VideoModel
 import torch
 from torch.utils.data import DataLoader
 import string
 import time
+import tensorflow as tf
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 
+test_summary_writer = tf.summary.create_file_writer('mlp/log')
 
 def make_char_dict():
     chars = string.ascii_lowercase
@@ -107,6 +109,9 @@ def train_process():
         print("time:{}, epoch: {} step: {}, avg running loss is {}".format(
             time.ctime(), epoch + 1, idx + 1, running_loss / num_batches
         ))
+        # with test_summary_writer.as_default():
+        #     tf.summary.scalar('train_loss', running_loss, step=epoch*(len(train_folders))+num_batches)
+
     return running_loss, num_batches
 
 
@@ -115,6 +120,9 @@ def testing_process():
     num_batches = 0
 
     model.eval()
+
+    crt = 0
+    ttl = 0
     with torch.no_grad():
         for idx, data in enumerate(test_dataloader):
             x, y = data
@@ -125,23 +133,37 @@ def testing_process():
 
             scores = scores.view(size[0] * size[1], -1)
             y = y.view(size[0] * size[1])
+
+            predit = torch.argmax(scores,dim=1)
+
+
+            crt += torch.sum(torch.eq(predit,y)).cpu().numpy()
+
+
+            ttl += (size[0] * size[1])
+
             loss = criterion(scores, y)
             running_loss += loss.item()
             num_batches += 1
-    return running_loss, num_batches
+    
+    # with test_summary_writer.as_default():
+    #     tf.summary.scalar('eval_loss', running_loss, step=epoch)
+    #     tf.summary.scalar('eval_acc', crt/ttl, step=epoch)
+    return running_loss, num_batches, crt/ttl
 
 
 eval_loss = 3
 
 for epoch in range(epochs):
     running_loss, num_batches = train_process()
-    test_running_loss, test_num_batches = testing_process()
+    test_running_loss, test_num_batches,acc = testing_process()
     print("*" * 100)
-    print("epoch: {}, avg training loss:{}, avg validation loss:{}".format(epoch + 1, running_loss / num_batches,
-                                                                           test_running_loss / test_num_batches))
+    print("epoch: {}, avg training loss:{}, avg validation loss:{}, eval acc{}".format(epoch + 1, running_loss / num_batches,
+                                                                           test_running_loss / test_num_batches,acc))
     scheduler.step(test_running_loss / test_num_batches)
     print("*" * 100)
 
     if test_running_loss / test_num_batches < eval_loss:
-        torch.save(model.state_dict(),'mlp/weights/best.pt')
-        eval_loss =  test_running_loss / test_num_batches
+        torch.save(model.state_dict(),f'mlp/weights/best_{epoch}.pt')
+        eval_loss =  test_running_loss / test_num_batches   
+
