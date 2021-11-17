@@ -7,6 +7,7 @@ import albumentations as A
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import string
+import math
 
 augmentation = A.Compose([
     A.OneOf([
@@ -72,13 +73,17 @@ class VideoDataset(Dataset):
         image_list = sorted(image_list)
         images = []
 
-        if len(image_list) >= self.fixed_frame_num:
-            image_list = image_list[:self.fixed_frame_num]
-        else:
-            image_list += ["pad"] * (self.fixed_frame_num - len(image_list))
+        # if len(image_list) >= self.fixed_frame_num:
+        #     image_list = image_list[:self.fixed_frame_num]
+        # else:
+        #     image_list += ["pad"] * (self.fixed_frame_num - len(image_list))
+        
+        k_col, k_row = 5, 5
+        k_frame_pick_one = math.floor(len(image_list) / (k_col * k_row))
+        # print('k_frame_pick_one: ', k_frame_pick_one)
 
         for index,i in enumerate(image_list):
-            if index%8 == 0:
+            if index%k_frame_pick_one == 0:
                 if i != "pad":
                     img = Image.open(i).convert("RGB")
                     if self.augmentation is not None:
@@ -90,10 +95,10 @@ class VideoDataset(Dataset):
                 img = img.resize(self.image_shape)
                 images.append(img)
 
-        x = Image.new('RGB', (self.image_shape[1] * 5, self.image_shape[0] * 5))
+        x = Image.new('RGB', (self.image_shape[1] * k_row, self.image_shape[0] * k_col))
 
-        for i in range(5):
-            for k in range(5):
+        for i in range(k_col):
+            for k in range(k_row):
                 x.paste(images[i * k + k], (self.image_shape[1] * k, self.image_shape[0] * i))
         
 
