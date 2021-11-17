@@ -90,8 +90,6 @@ class VideoModel(torch.nn.Module):
         # bs, 256, 3, 3, 14
         x = x.view(shape[0], self.max_len, -1)  # bs, max_len, rest
 
-        print(x.shape)
-
         x = self.lstm_decoder(x)
         return x
 
@@ -114,12 +112,9 @@ if __name__ == '__main__':
     fixed_max_frame = 200
     # batch size, fixed_max_frame, channel, fixed_height, fixed_width
     x = torch.rand(batch_size, 432000)
-
     model = VideoModel()
-    print(model)
-
     y = model(x)
-    print(y.size())  # [5, 6, 28]
+    print('Output shape:',y.size())  # [5, 6, 28]
     # 5 is the batch size, 6 is the max_char_len, 28 is the char_number,
     # we can use greedy search to find the character with max score for each position
 

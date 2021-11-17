@@ -10,7 +10,7 @@ import string
 
 augmentation = A.Compose([
     A.OneOf([
-        A.IAAAdditiveGaussianNoise(p=0.9),
+        #A.IAAAdditiveGaussianNoise(p=0.9),
         A.GaussNoise(p=0.9),
     ], p=0.9),
     A.OneOf([
@@ -20,15 +20,15 @@ augmentation = A.Compose([
     ], p=0.9),
     A.OneOf([
         A.CLAHE(clip_limit=2, p=0.9),
-        A.IAASharpen(p=0.9),
-        A.IAAEmboss(p=0.9),
+        A.Sharpen(p=0.9),
+        A.Emboss(p=0.9),
         A.RandomBrightnessContrast(p=0.95),
     ], p=0.9),
     A.OneOf(
         [
             A.HueSaturationValue(p=0.9),
             A.RandomGamma(p=0.9),
-            A.IAAPerspective(p=0.05),
+            A.Perspective(p=0.05),
         ], p=0.9,
     )
 ])
@@ -139,5 +139,7 @@ if __name__ == '__main__':
     )
 
     for batch_idx, (imgs, label) in enumerate(train_dataloader):
-        print(imgs.shape)
-        print(label.shape)
+        print('Input shape:',imgs.shape)
+        print('Label shape:',label.shape)
+        print('Label:',label)
+        break
