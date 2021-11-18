@@ -12,7 +12,7 @@ class BidirectionalLSTM(torch.nn.Module):
         # self.embedding_1 = torch.nn.Linear(nHidden * 2, nHidden)
         # self.embedding_2 = torch.nn.Linear(nHidden, nHidden//2)
         # self.embedding_3 = torch.nn.Linear(nHidden//2, nOut)
-        # self.dropout_1 = torch.nn.Dropout(p=0.1)
+        self.dropout_1 = torch.nn.Dropout(p=0.1)
         # self.dropout_2 = torch.nn.Dropout(p=0.25)
 
     def forward(self, inputs):
@@ -33,7 +33,13 @@ class BidirectionalLSTM(torch.nn.Module):
         output = self.embedding(t_rec)
 
         output = output.reshape(T, b, -1)
+
+        # output = self.dropout_1(output)
+
+
+
         output = F.softmax(output, dim=-1)
+
         return output
 
 
@@ -62,32 +68,27 @@ class VideoModel(torch.nn.Module):
         
         
         self.mlp1= self.mlp(432000, 2000)
+        self.norm1 = torch.nn.BatchNorm1d(2000, affine=False)
         self.mlp2 = self.mlp(2000,2000)
+        self.norm2 = torch.nn.BatchNorm1d(2000, affine=False)
+
         self.mlp3 = self.mlp(2000, 2000*6)
+        self.norm3 = torch.nn.BatchNorm1d(2000*6)
 
         self.lstm_decoder = BidirectionalLSTM(nIn=2000,
                                               nHidden=256,
                                               nOut=number_classes)
 
-    def _conv_block(self, input_c, output_c):
-        conv_block = torch.nn.Sequential(
-            torch.nn.Conv3d(input_c, output_c, kernel_size=(3, 3, 2), padding=1),
-            torch.nn.LeakyReLU(),
-            # torch.nn.BatchNorm3d(output_c),
-            torch.nn.Conv3d(output_c, output_c, kernel_size=(3, 3, 2), padding=1),
-            torch.nn.LeakyReLU(),
-            # torch.nn.BatchNorm3d(output_c),
-            torch.nn.MaxPool3d((2, 2, 2))
-        )
-        return conv_block
 
     def forward(self, x):
         #x = x.permute(dims=(0, 2, 3, 4, 1))
         x = self.mlp1(x)
+        x = self.norm1(x)
         x = self.mlp2(x)
+        x = self.norm2(x)
         x = self.mlp3(x)
+        x = self.norm3(x)
         shape = x.size()
-        # bs, 256, 3, 3, 14
         x = x.view(shape[0], self.max_len, -1)  # bs, max_len, rest
 
         x = self.lstm_decoder(x)
