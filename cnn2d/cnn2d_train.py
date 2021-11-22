@@ -69,7 +69,7 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=1, momentum=0.9)
 
 steps_per_epoch = len(train_folders) // 10 + 1
-epochs = 300
+epochs = 50
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                        mode='min',
                                                        verbose=True,
@@ -139,3 +139,6 @@ for epoch in range(epochs):
                                                                            test_running_loss / test_num_batches))
     scheduler.step(test_running_loss / test_num_batches)
     print("*" * 100)
+    
+    
+torch.save(model, '2dcrnn_model.pkl')

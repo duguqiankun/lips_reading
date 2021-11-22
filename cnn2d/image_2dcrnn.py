@@ -65,7 +65,7 @@ class VideoModel(torch.nn.Module):
         self.conv_block_3 = self. _cnn2d_block_2_conv_layer(64, 128)
         self.conv_block_4 = self. _cnn2d_block_2_conv_layer(128, 256)
         
-        self.lstm_decoder = BidirectionalLSTM(nIn=13824,
+        self.lstm_decoder = BidirectionalLSTM(nIn=9600,
                                               nHidden=256,
                                               nOut=number_classes)
     
@@ -107,10 +107,9 @@ if __name__ == '__main__':
     channel = 3
     fixed_height, fixed_width = 60, 60
     fixed_max_frame = 200
-    k = 5
+    k_col, k_row = 4, 4
     # batch size, fixed_max_frame, channel, fixed_height, fixed_width
-    x = torch.rand(batch_size, channel, fixed_height * k, fixed_width * k)
-
+    x = torch.rand(batch_size, channel, fixed_height * k_col, fixed_width * k_row)
     model = VideoModel()
     print(model)
 

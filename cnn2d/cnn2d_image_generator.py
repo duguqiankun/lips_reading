@@ -72,14 +72,15 @@ class VideoDataset(Dataset):
         image_list = [os.path.join(image_folder, i) for i in os.listdir(image_folder) if i.endswith(".jpg")]
         image_list = sorted(image_list)
         images = []
-
-        # if len(image_list) >= self.fixed_frame_num:
-        #     image_list = image_list[:self.fixed_frame_num]
-        # else:
-        #     image_list += ["pad"] * (self.fixed_frame_num - len(image_list))
         
-        k_col, k_row = 5, 5
+        k_col, k_row = 4, 4
+        max_frame_num = k_col * k_row
+
+        if len(image_list) <= max_frame_num:
+            image_list += ["pad"] * (max_frame_num - len(image_list))
+        
         k_frame_pick_one = math.floor(len(image_list) / (k_col * k_row))
+        
         # print('k_frame_pick_one: ', k_frame_pick_one)
 
         for index,i in enumerate(image_list):
@@ -99,10 +100,10 @@ class VideoDataset(Dataset):
 
         for i in range(k_col):
             for k in range(k_row):
-                x.paste(images[i * k + k], (self.image_shape[1] * k, self.image_shape[0] * i))
+                x.paste(images[i * k_col + k], (self.image_shape[1] * k, self.image_shape[0] * i))
         
 
-        # x.save('./test.jpg', quality=50)
+        x.save('./test.jpg', quality=50)
 
         x = self.transform(x)
         y = torch.tensor(label_digit, dtype=torch.long)
